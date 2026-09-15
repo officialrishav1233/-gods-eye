@@ -712,6 +712,8 @@ of current runtime behavior, see [`docs/CURRENT-STATE.md`](docs/CURRENT-STATE.md
 
 - Add a Vancouver CCTV camera pack: 830 public directional cameras across 218 city intersections, generated from the official traffic-camera KML and page catalogs (`scripts/build-vancouver-cctv.mjs` → `config/cctv_sources.vancouver.json`).
 
+- List Vancouver as a curated location with five POIs and two seed demo cameras, so the Location panel can fly there and the camera layer carries keyless content before the pack loads.
+
 - Separate UI assembly from standalone engine wiring, with dedicated panel layout, position, notice and recording owners.
 - Stop pending UI presentation and drag work during disposal; preserve accessible status text when stopping its decoration.
 - Organize component styles behind the same ordered stylesheet entry and include 3D model controls in the current-state snapshot.

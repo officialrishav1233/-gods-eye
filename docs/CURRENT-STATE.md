@@ -1094,8 +1094,10 @@ confidence, and frame URLs stay pinned to trafficcams.vancouver.ca. The pack
 carries an explicit 5-minute ambient refresh entry — `city of vancouver traffic
 cams` in the CCTV LOD table — because the city's stills regenerate on a 300 s
 page cycle, and the attribution control lists the new `vancouver-cctv` credit.
+Vancouver is also a curated location now: `CITY_POIS` gains the city with
+five POIs and `CAMERA_SEEDS` gains two demo cameras, so the Location panel
+can fly there and the layer carries keyless content before the pack loads.
 
-## September 8, 2026
 ## September 8, 2026
 
 Earthquake refreshes validate the complete feed and construct replacement entities before clearing the previous snapshot. Malformed rows and duplicate rendered IDs retain the last good entities, overlays, count and timestamp and report a malformed response; unknown magnitude is excluded from M2.5+ rendering.
