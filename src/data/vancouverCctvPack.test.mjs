@@ -10,9 +10,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { normalizeSourceItem } from '../../server/providers/cctv/normalize.js';
+import { loadVancouverSourcesFromCatalog } from '../../server/providers/cctv/sources.js';
+import { allocateSourceCap } from '../../server/providers/cctv/cap.js';
 
 const PACK = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -20,6 +23,13 @@ const PACK = path.resolve(
   '..',
   'config',
   'cctv_sources.vancouver.json',
+);
+// Repo root so the live loader resolves config/cctv_sources.vancouver.json from
+// the same path depth the CITY_POIS seeds in src/data use.
+const REPO_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
 );
 const ORIGIN = 'https://trafficcams.vancouver.ca/';
 const CITY = {
@@ -106,5 +116,198 @@ test('Vancouver headings come from the official direction labels', () => {
     assert.ok(direction, source.id);
     assert.equal(source.headingDeg, CARDINALS[direction], source.id);
     assert.equal(source.headingConfidence, 'high', source.id);
+  }
+});
+
+test('Vancouver loads as a default live pack with no special env var', (t) => {
+  t.mock.method(console, 'log', () => {});
+  t.mock.method(console, 'warn', () => {});
+  const saved = process.env.CCTV_VANCOUVER_SOURCES_FILE;
+  try {
+    // No override env: the loader must read the shipped DEFAULT_VANCOUVER_SOURCE_FILE.
+    delete process.env.CCTV_VANCOUVER_SOURCES_FILE;
+    const raw = loadPack();
+    const cameras = loadVancouverSourcesFromCatalog({ sourceRoot: REPO_ROOT });
+    assert.equal(
+      cameras.length,
+      raw.length,
+      'the live loader must not drop valid rows from the shipped pack',
+    );
+    assert.ok(cameras.length > 800, 'the shipped Vancouver pack is large');
+    assert.ok(
+      cameras.every((c) => c.city === 'Vancouver'),
+      'every camera is Vancouver',
+    );
+    assert.ok(
+      cameras.every((c) => c.url.startsWith(ORIGIN)),
+      'every frame stays on the official origin',
+    );
+    assert.equal(
+      cameras[0].snapshotUrl,
+      cameras[0].url,
+      'snapshot mirrors the frame url',
+    );
+    assert.ok(
+      cameras.every((c) => c.poseSource === 'curated'),
+      'poses are curated',
+    );
+    assert.deepEqual(
+      cameras.map((c) => c.id),
+      [...new Set(cameras.map((c) => c.id))],
+      'ids are unique',
+    );
+  } finally {
+    if (saved === undefined) delete process.env.CCTV_VANCOUVER_SOURCES_FILE;
+    else process.env.CCTV_VANCOUVER_SOURCES_FILE = saved;
+  }
+});
+
+test('Vancouver loader fails closed: a missing/unreadable file returns [] without throwing', (t) => {
+  t.mock.method(console, 'log', () => {});
+  t.mock.method(console, 'warn', () => {});
+  const saved = process.env.CCTV_VANCOUVER_SOURCES_FILE;
+  try {
+    process.env.CCTV_VANCOUVER_SOURCES_FILE = '/nonexistent/gev-vancouver.json';
+    // A broken Vancouver pack must not reject the whole refresh — catalog.js
+    // wraps each LIVE_PACK in allSettled, so this [] keeps peer regions alive.
+    assert.doesNotThrow(() =>
+      loadVancouverSourcesFromCatalog({ sourceRoot: REPO_ROOT }),
+    );
+    assert.deepEqual(
+      loadVancouverSourcesFromCatalog({ sourceRoot: REPO_ROOT }),
+      [],
+    );
+  } finally {
+    if (saved === undefined) delete process.env.CCTV_VANCOUVER_SOURCES_FILE;
+    else process.env.CCTV_VANCOUVER_SOURCES_FILE = saved;
+  }
+});
+
+test('Vancouver loader skips malformed rows and off-host URLs', (t) => {
+  t.mock.method(console, 'log', () => {});
+  t.mock.method(console, 'warn', () => {});
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gev-van-bad-'));
+  fs.mkdirSync(path.join(dir, 'config'));
+  fs.writeFileSync(
+    path.join(dir, 'config', 'cctv_sources.vancouver.json'),
+    JSON.stringify([
+      null,
+      {
+        id: 'van-offhost',
+        url: 'https://evil.example/x.jpg',
+        snapshotUrl: 'https://evil.example/x.jpg',
+        lat: 49.28,
+        lon: -123.12,
+        headingDeg: 90,
+        headingConfidence: 'high',
+        feedType: 'image',
+        sourceKind: 'vancouver-open-data',
+        city: 'Vancouver',
+        cityId: 'vancouver',
+        provider: 'City of Vancouver Traffic Cams',
+        license: 'x',
+      },
+      {
+        id: 'van-bad-coords',
+        url: 'https://trafficcams.vancouver.ca/cameraimages/a.jpg',
+        snapshotUrl: 'https://trafficcams.vancouver.ca/cameraimages/a.jpg',
+        lat: 'not-a-number',
+        lon: -123.12,
+        headingDeg: 180,
+        headingConfidence: 'high',
+        feedType: 'image',
+        sourceKind: 'vancouver-open-data',
+        city: 'Vancouver',
+        cityId: 'vancouver',
+        provider: 'City of Vancouver Traffic Cams',
+        license: 'x',
+      },
+      {
+        id: 'van-ok-south',
+        url: 'https://trafficcams.vancouver.ca/cameraimages/a.jpg',
+        snapshotUrl: 'https://trafficcams.vancouver.ca/cameraimages/a.jpg',
+        lat: 49.28,
+        lon: -123.12,
+        headingDeg: 180,
+        headingConfidence: 'high',
+        feedType: 'image',
+        sourceKind: 'vancouver-open-data',
+        city: 'Vancouver',
+        cityId: 'vancouver',
+        provider: 'City of Vancouver Traffic Cams',
+        license: 'x',
+        poseSource: 'curated',
+      },
+    ]),
+  );
+  const saved = process.env.CCTV_VANCOUVER_SOURCES_FILE;
+  try {
+    process.env.CCTV_VANCOUVER_SOURCES_FILE = path.join(
+      dir,
+      'config',
+      'cctv_sources.vancouver.json',
+    );
+    const cameras = loadVancouverSourcesFromCatalog({ sourceRoot: REPO_ROOT });
+    assert.deepEqual(
+      cameras.map((c) => c.id),
+      ['van-ok-south'],
+    );
+    assert.equal(
+      cameras[0].poseSource,
+      'curated',
+      'curated flag survives the loader',
+    );
+  } finally {
+    if (saved === undefined) delete process.env.CCTV_VANCOUVER_SOURCES_FILE;
+    else process.env.CCTV_VANCOUVER_SOURCES_FILE = saved;
+  }
+});
+
+test('Vancouver shares the global catalog cap with other packs (round-robin, no silent eviction)', () => {
+  // Proves Vancouver + another pack coexist in the served catalog: the fair
+  // cap thins BOTH instead of evicting whichever pack was appended last.
+  const pack = (name, count) => ({
+    name,
+    sources: Array.from({ length: count }, (_, i) => ({
+      id: `${name}-${i}`,
+      rank: i,
+    })),
+  });
+  const { sources, packs } = allocateSourceCap(
+    [pack('austin', 250), pack('vancouver', 830)],
+    40,
+  );
+  assert.equal(sources.length, 40, 'the cap is honored');
+  assert.ok(
+    sources.some((s) => s.id.startsWith('vancouver-')),
+    'Vancouver is served when Austin is also present',
+  );
+  assert.ok(
+    sources.some((s) => s.id.startsWith('austin-')),
+    'Austin is served when Vancouver is also present',
+  );
+  const byName = Object.fromEntries(packs.map((p) => [p.name, p]));
+  assert.ok(byName.austin.kept > 0, 'Austin keeps its share');
+  assert.ok(byName.vancouver.kept > 0, 'Vancouver keeps its share');
+  assert.equal(byName.austin.kept + byName.vancouver.kept, 40);
+});
+
+test('the Vancouver LIVE_PACKS entry is enabled by default, off only via CCTV_VANCOUVER_ENABLED=0', () => {
+  // Vancouver's enabled() gate in server/providers/cctv/catalog.js uses the
+  // same envEnabled() predicate as the eight regional packs (tfl/ontario/
+  // fintraffic/drivebc/txdot/tallinn/tarktee/warendorf/calgary). Lock the
+  // convention so Vancouver can never be silently dropped and can't blank peers.
+  const envEnabled = (name) => String(process.env[name] || '1').trim() !== '0';
+  const saved = process.env.CCTV_VANCOUVER_ENABLED;
+  try {
+    delete process.env.CCTV_VANCOUVER_ENABLED;
+    assert.equal(envEnabled('CCTV_VANCOUVER_ENABLED'), true, 'default-on');
+    process.env.CCTV_VANCOUVER_ENABLED = '0';
+    assert.equal(envEnabled('CCTV_VANCOUVER_ENABLED'), false, "off via '0'");
+    process.env.CCTV_VANCOUVER_ENABLED = '1';
+    assert.equal(envEnabled('CCTV_VANCOUVER_ENABLED'), true, "on via '1'");
+  } finally {
+    if (saved === undefined) delete process.env.CCTV_VANCOUVER_ENABLED;
+    else process.env.CCTV_VANCOUVER_ENABLED = saved;
   }
 });

@@ -1085,10 +1085,14 @@ The Vancouver CCTV pack ships as a generated catalog: 830 public directional
 cameras across 218 City of Vancouver intersections, produced by
 `scripts/build-vancouver-cctv.mjs` from the official traffic-camera KML and the
 per-intersection pages on trafficcams.vancouver.ca into
-`config/cctv_sources.vancouver.json`. Load it with
-`CCTV_SOURCES_FILE=config/cctv_sources.vancouver.json`; a nonempty source file
-disables the live Austin/Caltrans/TfL loaders unless `CCTV_FORCE_AUSTIN=1`.
-Coordinates are intersection-level (the city publishes one point per
+`config/cctv_sources.vancouver.json`. Vancouver registers as its own
+LIVE_PACKS entry — enabled by default, alongside the built-in
+Austin/Caltrans/TfL/Ontario/Texas/NSW/Calgary/Tallinn/Warendorf packs — so it
+adds to the mesh instead of replacing it. Disable Vancouver only with
+`CCTV_VANCOUVER_ENABLED=0` (or repoint its catalog file via
+`CCTV_VANCOUVER_SOURCES_FILE`). The global `CCTV_SOURCES_FILE` override still
+exists as an alternate full-catalog input for self-hosters, but Vancouver no
+longer depends on it. Coordinates are intersection-level (the city publishes one point per
 intersection), headings come from the city's own N/E/S/W designations with high
 confidence, and frame URLs stay pinned to trafficcams.vancouver.ca. The pack
 carries an explicit 5-minute ambient refresh entry — `city of vancouver traffic

@@ -300,7 +300,7 @@ async function main() {
   );
   console.log(`[build-vancouver-cctv] wrote ${path.relative(ROOT, outPath)}`);
   console.log(
-    '[build-vancouver-cctv] run with: CCTV_SOURCES_FILE=config/cctv_sources.vancouver.json npm run dev',
+    '[build-vancouver-cctv] Vancouver ships as a default LIVE_PACKS entry (catalog.js); loads alongside Austin/Caltrans/etc with no env var. Disable only Vancouver with: CCTV_VANCOUVER_ENABLED=0',
   );
 }
 

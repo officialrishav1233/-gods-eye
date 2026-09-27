@@ -1,5 +1,11 @@
 # Changelog
 
+- Register Vancouver as a LIVE_PACKS entry (gated by `CCTV_VANCOUVER_ENABLED`)
+  instead of routing it through the global `CCTV_SOURCES_FILE` override, so the
+  830-camera pack adds to the mesh instead of replacing Austin/Caltrans/TfL/
+  Ontario/etc. Vancouver loads by default; `CCTV_VANCOUVER_ENABLED=0` suppresses
+  Vancouver only while leaving peer regions intact.
+
 - CCTV cameras whose bearing is a guess now say so. Packs mark bearings derived
   from a hash of the camera id as `headingConfidence: 'low'`, but nothing read the
   flag, so roughly 70% of a default catalog rendered like surveyed facings. The HUD
@@ -709,10 +715,6 @@ of current runtime behavior, see [`docs/CURRENT-STATE.md`](docs/CURRENT-STATE.md
 - Drive share updates, Location feedback and Scene controls through immutable state snapshots and disposable subscriptions.
 - Keep stale lookup/load completions from publishing accepted results and retain shot rows during playback progress updates.
 - Export the existing Scene director with explicit playback and editing outcomes.
-
-- Add a Vancouver CCTV camera pack: 830 public directional cameras across 218 city intersections, generated from the official traffic-camera KML and page catalogs (`scripts/build-vancouver-cctv.mjs` → `config/cctv_sources.vancouver.json`).
-
-- List Vancouver as a curated location with five POIs and two seed demo cameras, so the Location panel can fly there and the camera layer carries keyless content before the pack loads.
 
 - Separate UI assembly from standalone engine wiring, with dedicated panel layout, position, notice and recording owners.
 - Stop pending UI presentation and drag work during disposal; preserve accessible status text when stopping its decoration.
