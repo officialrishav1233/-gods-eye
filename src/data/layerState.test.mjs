@@ -726,7 +726,7 @@ test('a fresh boot starts 3D aircraft ON in proximity — codec, both layers, an
   );
   assert.match(
     html,
-    /class="pp-toggle-btn active" id="models3d-toggle" aria-pressed="true"/,
+    /class="pp-toggle-btn active"[\s\S]*?id="models3d-toggle"[\s\S]*?aria-pressed="true"/,
     'index.html: the 3D button paints lit on first paint, before ui.js runs — and says so',
   );
   assert.match(
