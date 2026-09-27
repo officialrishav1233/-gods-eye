@@ -47,6 +47,8 @@ import {
   WARENDORF_IMAGE_ORIGINS,
   DEFAULT_VANCOUVER_SOURCE_FILE,
   VANCOUVER_IMAGE_ORIGIN,
+  DEFAULT_VANCOUVER_MAX_SOURCES,
+  VANCOUVER_CENTER,
   NSW_CAMERAS_URL,
   NSW_IMAGE_ORIGIN,
   DEFAULT_NSW_MAX_SOURCES,
@@ -1354,8 +1356,20 @@ export function loadVancouverSourcesFromCatalog({
       poseSource: 'curated',
     });
   }
-  console.log('[CCTV] Loaded Vancouver camera sources:', cameras.length);
-  return cameras;
+  const unique = Array.from(
+    new Map(cameras.map((camera) => [camera.id, camera])).values(),
+  );
+  const maxRaw = Number(
+    process.env.CCTV_VANCOUVER_MAX_SOURCES || DEFAULT_VANCOUVER_MAX_SOURCES,
+  );
+  const maxCount = Number.isFinite(maxRaw)
+    ? Math.max(8, Math.min(1000, Math.floor(maxRaw)))
+    : DEFAULT_VANCOUVER_MAX_SOURCES;
+  const prioritized = prioritizeSources(unique, maxCount, [VANCOUVER_CENTER]);
+  console.log(
+    `[CCTV] Loaded Vancouver camera sources: ${unique.length} (using nearest ${prioritized.length})`,
+  );
+  return prioritized;
 }
 
 /**

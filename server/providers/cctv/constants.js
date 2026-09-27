@@ -208,6 +208,16 @@ export const WARENDORF_IMAGE_ORIGINS = Object.freeze([
 export const DEFAULT_VANCOUVER_SOURCE_FILE =
   'config/cctv_sources.vancouver.json';
 export const VANCOUVER_IMAGE_ORIGIN = 'https://trafficcams.vancouver.ca/';
+/**
+ * Default cap on Vancouver cameras after distance-based prioritization
+ * (nearest downtown first). The shipped ~830-camera pack trims to this by
+ * default; raise it with CCTV_VANCOUVER_MAX_SOURCES (clamped to 1000 here,
+ * the size of the curated pack) in scripts/dev-fresh.sh. Sized so Vancouver +
+ * the other default packs still fit inside CCTV_MAX_SOURCES_CEILING.
+ */
+export const DEFAULT_VANCOUVER_MAX_SOURCES = 600;
+/** Downtown Vancouver anchor (Canada Place / Coal Harbour) for ranking. */
+export const VANCOUVER_CENTER = { lat: 49.2827, lon: -123.1207 };
 /** Live Traffic NSW (Transport for NSW): keyless public camera catalog. */
 export const NSW_CAMERAS_URL =
   'https://data.livetraffic.com/cameras/traffic-cam.json';
