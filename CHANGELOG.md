@@ -1,5 +1,11 @@
 # Changelog
 
+- Fall back to the keyless globe when photorealistic 3D Tiles cannot draw.
+  Startup counted any tileset Cesium resolved as a success, including one whose
+  root never arrived, so the globe was hidden behind tiles that never appeared
+  and the ion route was never tried. A rootless tileset now counts as a failed
+  attempt and the next route is used.
+
 - CCTV cameras whose bearing is a guess now say so. Packs mark bearings derived
   from a hash of the camera id as `headingConfidence: 'low'`, but nothing read the
   flag, so roughly 70% of a default catalog rendered like surveyed facings. The HUD
