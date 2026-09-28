@@ -1,5 +1,12 @@
 # Changelog
 
+- The read-only query proxies state their method contract. `/api/opensky`,
+  `/api/adsblol/mil` and `/api/route` answered any verb with the same body
+  while ignoring the request; they now answer `405 Method Not Allowed` to
+  anything but `GET`, the way `/api/geocode` and the other query proxies
+  already did. The refusal precedes rate limiting and any upstream call
+  (daikaginza, #794).
+
 - CCTV cameras whose bearing is a guess now say so. Packs mark bearings derived
   from a hash of the camera id as `headingConfidence: 'low'`, but nothing read the
   flag, so roughly 70% of a default catalog rendered like surveyed facings. The HUD
