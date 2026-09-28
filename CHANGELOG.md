@@ -1,5 +1,11 @@
 # Changelog
 
+- Register Vancouver as a LIVE_PACKS entry (gated by `CCTV_VANCOUVER_ENABLED`)
+  instead of routing it through the global `CCTV_SOURCES_FILE` override, so the
+  830-camera pack adds to the mesh instead of replacing Austin/Caltrans/TfL/
+  Ontario/etc. Vancouver loads by default; `CCTV_VANCOUVER_ENABLED=0` suppresses
+  Vancouver only while leaving peer regions intact.
+
 - CCTV cameras whose bearing is a guess now say so. Packs mark bearings derived
   from a hash of the camera id as `headingConfidence: 'low'`, but nothing read the
   flag, so roughly 70% of a default catalog rendered like surveyed facings. The HUD
